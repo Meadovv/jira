@@ -23,8 +23,9 @@ router.post('/login', async (req, res) => {
 
     if(passwordMatch) {
         const payload = {
-            id: 1,
-            username: username
+            _id: foundUser._id,
+            username: foundUser.username,
+            role: foundUser.role
         }
         const token = jwt.sign(payload, process.env.JWT_SECRET, {
             expiresIn: '1h'
