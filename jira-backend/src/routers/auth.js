@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Importing models
 const userModel = require('../models/user.model');
+const { verifyToken } = require('../utils/utils');
 
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
@@ -41,25 +42,19 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.post('/verify', (_req, res) => {
-    const token = _req.headers.authorization;
-    if(!token) {
+router.post('/verify', verifyToken, (req, res) => {
+    const auth = req.auth;
+
+    if(!auth.verified) {
         return res.status(401).send({
-            message: 'Token not found!'
+            message: 'Unauthorized!'
         });
     }
-    try {
-        const data_decoded = jwt.verify(token, process.env.JWT_SECRET);
-        return res.status(200).send({
-            username: data_decoded.username,
-            id: data_decoded.id,
-            message: 'Verified token!'
-        })
-    } catch (err) {
-        return res.status(401).send({
-            message: err.message
-        });
-    }
+    auth.verified = undefined;
+    return res.status(200).send({
+        message: 'Authorized!',
+        auth: auth
+    });
 });
 
 module.exports = router;
