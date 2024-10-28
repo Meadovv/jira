@@ -6,7 +6,8 @@ const ROLE = {
     QA: 'qa',
     BA: 'ba',
     UI_UX: 'ui_ux',
-    PD: 'pd'
+    PD: 'pd',
+    UNAUTHORIZED: 'unauthorized'
 }
 
 module.exports = ROLE;

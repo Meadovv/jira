@@ -1,6 +1,7 @@
 const express = require('express');
 const ROLE = require('../constants/ROLE');
 const router = express.Router();
+const moment = require('moment');
 
 const { verifyToken, newMongoId } = require('../utils/utils');
 
@@ -36,13 +37,29 @@ router.post('/add-user-to-project', verifyToken, async (req, res) => {
             });
         }
 
+        const foundProjectRole = await projectRoleModel
+            .findOne({ user_id: newMongoId(foundUser._id), project_id: newMongoId(foundProject._id) });
+        if (foundProjectRole) {
+            return res.status(400).send({
+                message: 'User already in project!'
+            });
+        }
+
         const newProjectRole = new projectRoleModel({
             user_id: newMongoId(foundUser._id),
             project_id: newMongoId(foundProject._id),
             role,
         });
 
-        const valid_project_role = [ROLE.DEV, ROLE.TEST, ROLE.BA, ROLE.QA, ROLE.UI_UX, ROLE.PD];
+        const valid_project_role = [
+            ROLE.DEV,
+            ROLE.TEST,
+            ROLE.BA,
+            ROLE.QA,
+            ROLE.UI_UX,
+            ROLE.PD
+        ];
+        
         if (!valid_project_role.includes(role)) {
             return res.status(400).send({
                 message: 'Invalid role!'
@@ -54,6 +71,122 @@ router.post('/add-user-to-project', verifyToken, async (req, res) => {
             message: 'User added to project!'
         });
 
+    } catch (error) {
+        console.log(error);
+        return res.status(500).send({
+            message: 'Internal server error!'
+        });
+    }
+});
+
+router.post('/change-project-info', verifyToken, async (req, res) => {
+    try {
+        const auth = req.auth;
+        if (!(auth.role == ROLE.PM || auth.role == ROLE.ADMIN)) {
+            return res.status(401).send({
+                message: 'Unauthorized!'
+            });
+        }
+
+        let {
+            project_code,
+            name,
+            rank,
+            category,
+            start_date,
+            end_date,
+            customer,
+            status,
+        } = req.body;
+
+        const foundProject = await projectModel
+            .findOne({ code: project_code });
+        if (!foundProject) {
+            return res.status(400).send({
+                message: 'Project not found!'
+            });
+        }
+
+        start_date = moment.utc(start_date, 'DD/MM/YYYY').toDate();
+        end_date = moment.utc(end_date, 'DD/MM/YYYY').toDate();
+        
+        if (end_date < start_date) {
+            return res.status(400).send({
+                message: 'Invalid date!'
+            });
+        }
+
+        await projectModel.findByIdAndUpdate(
+            foundProject._id,
+            {
+                name,
+                rank,
+                category,
+                start_date,
+                end_date,
+                customer,
+                status,
+            }
+        );
+
+        return res.status(200).send({
+            message: 'Project info changed!'
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).send({
+            message: 'Internal server error!'
+        });
+    }
+});
+
+router.get('/get-project-info', verifyToken, async (req, res) => {
+    try {
+        const { project_code } = req.query;
+        const foundProject = await projectModel
+            .findOne({ code: project_code }).lean();
+        if (!foundProject) {
+            return res.status(400).send({
+                message: 'Project not found!'
+            });
+        }
+
+        const auth = req.auth;
+
+        if(auth.role == ROLE.UNAUTHORIZED) {
+            return res.status(401).send({
+                message: 'Unauthorized!'
+            });
+        }
+
+        if (!(auth.role == ROLE.PM || auth.role == ROLE.ADMIN)) {
+            return res.status(200).send({
+                message: 'Get project info successful!',
+                project: foundProject
+            })
+        }
+
+        if (auth.role == ROLE.BA) {
+            return res.status(200).send({
+                message: 'Get project info successful!',
+                project: {
+                    name: foundProject.name,
+                    rank: foundProject.rank,
+                    category: foundProject.category,
+                    start_date: foundProject.start_date,
+                    end_date: foundProject.end_date
+                }
+            });
+        }
+
+        return res.status(200).send({
+            message: 'Get project info successful!',
+            project: {
+                name: foundProject.name,
+            }
+        })
+        
     } catch (error) {
         console.log(error);
         return res.status(500).send({
