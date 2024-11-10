@@ -1,4 +1,5 @@
 // Importing modules
+const cors = require('cors');
 const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
@@ -14,6 +15,9 @@ const fileModel = require('./src/models/file.model');
 
 dotenv.config();
 const app = express();
+app.use(cors({
+    origin: '*'
+}));
 
 const PORT = process.env.PORT || 3000;
 

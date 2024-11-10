@@ -1,15 +1,28 @@
 import React from "react";
 import "./index.css"
+import axios from "axios";
+import configs from "../../.configs";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
 
+    const navigate = useNavigate();
     const [username, setUsername] = React.useState(null);
     const [password, setPassword] = React.useState(null);
     
-    const handleLogin = () => {
-        alert(`Username: ${username}, Password: ${password}`);
-
-        // Send this to server
+    const handleLogin = async () => {
+        await axios.post(`${configs.API_URL}/auth/login`, {
+            username, password
+        })
+        .then(res => {
+            alert(res.data.message);
+            localStorage.setItem("token", res.data.token);
+            navigate("/");
+        })
+        .catch(err => {
+            console.log(err);
+            alert("Login failed with error: " + err.response.data.message);
+        })
     }
 
     return (

@@ -18,7 +18,7 @@ router.post('/add-user', verifyToken, async (req, res) => {
             message: 'Unauthorized!'
         });
     }
-    
+
     const { username, password } = req.body;
     const foundUser = await userModel
         .findOne({ username });
@@ -54,10 +54,10 @@ router.post('/add-role', verifyToken, async (req, res) => {
                 message: 'User not found!'
             });
         }
-    
+
         foundUser.role = role;
         await foundUser.save();
-    
+
         return res.status(200).send({
             message: 'Role added!',
             user: {
@@ -81,7 +81,7 @@ router.post('/create-project', verifyToken, async (req, res) => {
             });
         }
 
-        const { 
+        const {
             leader_username,
             project_code,
             roles
@@ -94,7 +94,7 @@ router.post('/create-project', verifyToken, async (req, res) => {
             });
         }
 
-        if(foundLeader.role != ROLE.PM) {
+        if (foundLeader.role != ROLE.PM) {
             return res.status(400).send({
                 message: 'This is not a PM!'
             });
@@ -126,6 +126,56 @@ router.post('/create-project', verifyToken, async (req, res) => {
 
     } catch (err) {
         console.log(err);
+        return res.status(500).send({
+            message: 'Internal server error!'
+        });
+    }
+});
+
+router.get('/get-projects', verifyToken, async (req, res) => {
+    try {
+        const auth = req.auth;
+        if (auth?.role != ROLE.ADMIN) {
+            return res.status(401).send({
+                message: 'Unauthorized!'
+            });
+        }
+
+        const projects = await projectModel
+            .find()
+            .populate('creator', 'username')
+            .populate('leader', 'username');
+        return res.status(200).send({
+            projects
+        });
+    } catch (err) {
+        return res.status(500).send({
+            message: 'Internal server error!'
+        });
+    }
+});
+
+router.get('/get-users', verifyToken, async (req, res) => {
+    try {
+        const auth = req.auth;
+        if (auth?.role != ROLE.ADMIN) {
+            return res.status(401).send({
+                message: 'Unauthorized!'
+            });
+        }
+
+        const role = req.query.role || null;
+
+        let users;
+        if (role === null) {
+            users = await userModel.find().select('-password');
+        } else {
+            users = await userModel.find({ role }).select('-password');
+        }
+        return res.status(200).send({
+            users
+        });
+    } catch (err) {
         return res.status(500).send({
             message: 'Internal server error!'
         });

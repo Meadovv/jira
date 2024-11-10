@@ -28,8 +28,6 @@ router.get('/get-project-info', verifyToken, async (req, res) => {
             });
         }
 
-        console.log(foundProject);
-
         if (auth.role == ROLE.PM || auth.role == ROLE.ADMIN) {
             return res.status(200).send({
                 message: 'Get project info successful!',
